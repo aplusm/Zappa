@@ -1700,7 +1700,7 @@ class Zappa:
             description = "Created automatically by Zappa."
         restapi.Description = description
         endpoint_configuration = [] if endpoint_configuration is None else endpoint_configuration
-        if self.boto_session.region_name == "us-gov-west-1":
+        if self.boto_session.region_name in ["us-gov-west-1", "cn-north-1", "cn-northwest-1"]:
             endpoint_configuration.append("REGIONAL")
         if endpoint_configuration:
             endpoint = troposphere.apigateway.EndpointConfiguration()
@@ -1712,6 +1712,7 @@ class Zappa:
 
         root_id = troposphere.GetAtt(restapi, "RootResourceId")
         invocation_prefix = "aws" if self.boto_session.region_name != "us-gov-west-1" else "aws-us-gov"
+        invocation_prefix = invocation_prefix if self.boto_session.region_name not in ["us-gov-west-1", "cn-north-1"] else "aws-cn"
         invocations_uri = (
             "arn:"
             + invocation_prefix
@@ -2304,6 +2305,8 @@ class Zappa:
         self.upload_to_s3(template, working_bucket, disable_progress=disable_progress)
         if self.boto_session.region_name == "us-gov-west-1":
             url = "https://s3-us-gov-west-1.amazonaws.com/{0}/{1}".format(working_bucket, template)
+         elif self.boto_session.region_name in ["cn-north-1", "cn-northwest-1"]:
+            url = 'https://'+working_bucket+'.s3.'+self.boto_session.region_name+'.amazonaws.com.cn/{1}'.format(working_bucket, template)
         else:
             url = "https://s3.amazonaws.com/{0}/{1}".format(working_bucket, template)
 
