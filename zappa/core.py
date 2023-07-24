@@ -289,7 +289,6 @@ class Zappa:
         """
         Instantiate this new Zappa instance, loading any custom credentials if necessary.
         """
-
         # Set aws_region to None to use the system's region instead
         if aws_region is None:
             # https://github.com/Miserlou/Zappa/issues/413
@@ -365,6 +364,9 @@ class Zappa:
             self.dynamodb_client = self.boto_client("dynamodb")
             self.cognito_client = self.boto_client("cognito-idp")
             self.sts_client = self.boto_client("sts")
+
+        if self.is_china:
+            self.attach_policy = self.attach_policy.replace("arn:aws", "arn:aws-cn")
 
         self.tags = tags
         self.cf_template = troposphere.Template()
