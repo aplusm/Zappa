@@ -2305,7 +2305,7 @@ class Zappa:
         self.upload_to_s3(template, working_bucket, disable_progress=disable_progress)
         if self.boto_session.region_name == "us-gov-west-1":
             url = "https://s3-us-gov-west-1.amazonaws.com/{0}/{1}".format(working_bucket, template)
-         elif self.boto_session.region_name in ["cn-north-1", "cn-northwest-1"]:
+        elif self.boto_session.region_name in ["cn-north-1", "cn-northwest-1"]:
             url = 'https://'+working_bucket+'.s3.'+self.boto_session.region_name+'.amazonaws.com.cn/{1}'.format(working_bucket, template)
         else:
             url = "https://s3.amazonaws.com/{0}/{1}".format(working_bucket, template)
