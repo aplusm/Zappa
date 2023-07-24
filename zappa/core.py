@@ -371,6 +371,13 @@ class Zappa:
         self.cf_api_resources = []
         self.cf_parameters = {}
 
+    @property
+    def is_china(self) -> bool:
+        """
+        This property is added by Geode. It returns True if we use Zappa in china env, else False.
+        """
+        return self.boto_session.region_name in ["cn-north-1", "cn-northwest-1"]
+
     def configure_boto_session_method_kwargs(self, service, kw):
         """Allow for custom endpoint urls for non-AWS (testing and bootleg cloud) deployments"""
         if service in self.endpoint_urls and "endpoint_url" not in kw:
@@ -1700,7 +1707,7 @@ class Zappa:
             description = "Created automatically by Zappa."
         restapi.Description = description
         endpoint_configuration = [] if endpoint_configuration is None else endpoint_configuration
-        if self.boto_session.region_name in ["us-gov-west-1", "cn-north-1", "cn-northwest-1"]:
+        if self.boto_session.region_name == "us-gov-west-1" or self.is_china:
             endpoint_configuration.append("REGIONAL")
         if endpoint_configuration:
             endpoint = troposphere.apigateway.EndpointConfiguration()
@@ -1711,8 +1718,12 @@ class Zappa:
         self.cf_template.add_resource(restapi)
 
         root_id = troposphere.GetAtt(restapi, "RootResourceId")
-        invocation_prefix = "aws" if self.boto_session.region_name != "us-gov-west-1" else "aws-us-gov"
-        invocation_prefix = invocation_prefix if self.boto_session.region_name not in ["us-gov-west-1", "cn-north-1"] else "aws-cn"
+        if self.is_china:
+            invocation_prefix = "aws-cn"
+        elif self.boto_session.region_name == "us-gov-west-1":
+            invocation_prefix = "aws-us-gov"
+        else:
+            invocation_prefix = "aws"
         invocations_uri = (
             "arn:"
             + invocation_prefix
@@ -1950,7 +1961,9 @@ class Zappa:
             ],
         )
 
-        return "https://{}.execute-api.{}.amazonaws.com/{}".format(api_id, self.boto_session.region_name, stage_name)
+        return "https://{}.execute-api.{}.amazonaws.com{}/{}".format(
+            api_id, self.boto_session.region_name, ".cn" if self.is_china else "", stage_name
+        )
 
     def add_binary_support(self, api_id, cors=False):
         """
@@ -2305,7 +2318,7 @@ class Zappa:
         self.upload_to_s3(template, working_bucket, disable_progress=disable_progress)
         if self.boto_session.region_name == "us-gov-west-1":
             url = "https://s3-us-gov-west-1.amazonaws.com/{0}/{1}".format(working_bucket, template)
-        elif self.boto_session.region_name in ["cn-north-1", "cn-northwest-1"]:
+        elif self.is_china:
             url = 'https://'+working_bucket+'.s3.'+self.boto_session.region_name+'.amazonaws.com.cn/{1}'.format(working_bucket, template)
         else:
             url = "https://s3.amazonaws.com/{0}/{1}".format(working_bucket, template)
